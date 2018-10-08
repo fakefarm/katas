@@ -1,0 +1,11 @@
+source 'https://rubygems.org' do
+  group :development do
+    gem 'rspec'
+    gem 'rspec-core'
+    gem 'rspec-expectations'
+    gem 'rspec-mocks'
+    gem 'rspec-support'
+    gem 'guard'
+    gem 'guard-rspec', require: false
+  end
+end
