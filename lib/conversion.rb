@@ -2,10 +2,10 @@ class MissingConverstionChart < StandardError; end
 
 class Conversion
 
-  attr_accessor :conversion_chart, :value, :base, :translations
+  attr_accessor :conversions, :value, :base, :translations
 
-  def initialize(conversion_chart={}, translations={})
-    @conversion_chart = conversion_chart
+  def initialize(conversions={}, translations={})
+    @conversions = conversions
     @translations = translations
   end
 
@@ -15,73 +15,77 @@ class Conversion
   end
 
   def to
-    case @conversion_chart.size
-    when 0 then raise MissingConverstionChart, 'Please supply conversion chart'
-    else convert
+    case @conversions.size
+    when 0 then raise MissingConverstionChart, 'Please supply conversions'
+      else render
     end
   end
 
-  def convert
-    elements.map do |position,number|
-      base[position] = convert_element(number)
+  def render
+    fragments.map do |position,fragment|
+      base[position] = convert(fragment)
     end.join('')
   end
 
-  def elements
+  def fragments
     @base = {
-      thousands: get_thousand,
-      hundreds: get_hundred,
-      tens: get_ten,
-      ones: get_one
+      quad: get_quad,
+      trio: get_trio,
+      duo: get_duo,
+      single: get_single
     }.delete_if { |_,number| number == 0 }
   end
 
-  def convert_element(element)
+  def convert(fragment)
     case
-    when synthetic(element)
-      translate(build(element))
+    when synthetic(fragment)
+      translate(breed(fragment))
     else
-      conversion_chart[element]
+      conversions[fragment]
     end
   end
 
-  def build(number)
-    key = denominator(number)
-    repeat = number / denominator(number)
-    repeat.times.map { conversion_chart[key] }.join('')
+  def breed(number)
+    key = conversion_key(number)
+    sex = number / key
+    sex.times.map { conversions[key] }.join('')
   end
 
   def register_translation(from, to)
     translations[from] = to
   end
 
+  def register_conversion(from, to)
+    conversions[from] = to
+  end
+
   def translate(element)
     report = translations.map do |t|
-      element.gsub!(t[0], t[1])
+      element.gsub!(t[0].to_s, t[1].to_s)
     end.join('')
     report.empty? ? element : report
   end
 
 private
 
-  def get_thousand
+  def get_quad
     value - (value % 1000)
   end
 
-  def get_hundred
-    (value - (value % 100)) - get_thousand
+  def get_trio
+    (value - (value % 100)) - get_quad
   end
 
-  def get_ten
-    ten = (value - get_thousand - get_hundred)
+  def get_duo
+    ten = (value - get_quad - get_trio)
     ten - ten % 10
   end
 
-  def get_one
-    value - get_thousand - get_hundred - get_ten
+  def get_single
+    value - get_quad - get_trio - get_duo
   end
 
-  def denominator(number)
+  def conversion_key(number)
     # _dw add rubocop or flay or whatever mike v uses.
     case number.to_s.length
       when 1 then 1
@@ -92,6 +96,6 @@ private
   end
 
   def synthetic(number)
-    conversion_chart[number].nil?
+    conversions[number].nil?
   end
 end

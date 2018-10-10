@@ -24,69 +24,96 @@ RSpec.describe Conversion do
     'CCCCC'     => 'D',
     'DD'        => 'M'
   }
+
   subject { Conversion.new(CHART, TRANSLATIONS) }
 
-  ARABIC_ROMAN.each do |arabic, roman|
-    it "#{arabic} to #{roman}" do
-      expect(subject.from(arabic).to).to eq(roman)
+  let (:single_fixture) { { from: 7, to: 'VII' } }
+  let (:single_subject) { subject.from(single_fixture[:from]) }
+
+  let (:double_fixture) { { from: 42, to: 'XLII' } }
+  let (:double_subject) { subject.from(double_fixture[:from]) }
+
+  let (:triple_fixture) { { from: 156, to: 'CLVI' } }
+  let (:triple_subject) { subject.from(triple_fixture[:from]) }
+
+  let (:quad_fixture) { { from: 2569, to: 'MMDLXIX' } }
+  let (:quad_subject) { subject.from(quad_fixture[:from]) }
+
+
+  ARABIC_ROMAN.each do |from, to|
+    it "#{from} to #{to}" do
+      expect(subject.from(from).to).to eq(to)
     end
   end
 
-  it 'has a value' do
-    expect(subject.from(2).value).to eq(2)
+  describe 'requires a @conversions chart.' do
+    it 'Which can be provided on #new.' do
+      expect(subject.conversions.length).to eq(CHART.length)
+    end
+
+    it 'Or, #register_conversion during run time.' do
+      subject.register_conversion(10000, 'Z')
+      expect(subject.convert(10000)).to eq('Z')
+    end
+
+    it 'When missing, MissingConverstionChart is raised.' do
+      expect { Conversion.new.to }.to raise_error('Please supply conversions')
+    end
   end
 
-  it 'Requires a conversion chart' do
-    expect(subject.conversion_chart.length).to eq(CHART.length)
+  describe 'is a multi-step process.' do
+    it 'First, it breaks @value into #fragments.' do
+      expect( quad_subject.fragments ).to eq(
+        {
+          :single => 9,
+          :duo => 60,
+          :trio => 500,
+          :quad => 2000
+        })
+    end
+
+    it 'Then, it will #convert each fragement based on @conversions.' do
+      expect( subject.convert(30)).to eq('XXX')
+      expect( subject.convert(400)).to eq('CD')
+      expect( subject.convert(500)).to eq('D')
+    end
+
+    it 'Finally, #render pulls everything together.' do
+      expect( single_subject.render ).to eq( single_fixture[:to] )
+      expect( double_subject.render ).to eq( double_fixture[:to] )
+      expect( triple_subject.render ).to eq( triple_fixture[:to] )
+      expect( quad_subject.render ).to eq( quad_fixture[:to] )
+    end
+
+    context 'During #convert, if a fragment is #synthetic,' do
+      it 'The fragment will #breed.' do
+        expect(subject.breed(3)).to eq('III')
+        expect(subject.breed(8)).to eq('IIIIIIII')
+        expect(subject.breed(30)).to eq('XXX')
+        expect(subject.breed(80)).to eq('XXXXXXXX')
+        expect(subject.breed(300)).to eq('CCC')
+        expect(subject.breed(800)).to eq('CCCCCCCC')
+      end
+
+      it 'Then, the fragment will #translate.' do
+        expect(subject.translate('IIII')).to eq('IV')
+        expect(subject.translate('IIIIIII')).to eq('VII')
+        expect(subject.translate('XXXXX')).to eq('L')
+        expect(subject.translate('IIIIIIII')).to eq('VIII')
+      end
+    end
   end
 
-  it 'to raises MissingConverstionChart for missing chart ' do
-    expect { Conversion.new.to }.to raise_error('Please supply conversion chart')
-  end
+  describe 'Sometimes @conversions require @translations.' do
 
-  it 'convert' do
-    expect( subject.from(1569).convert ).to eq( 'MDLXIX')
-    expect( subject.from(1111).convert ).to eq( 'MCXI')
-    expect( subject.from(2).convert ).to eq( 'II')
-    expect( subject.from(21).convert ).to eq('XXI')
-    expect( subject.from(321).convert ).to eq('CCCXXI')
-  end
+    it 'Which can be provided on #new.' do
+      expect(subject.translations.length).to eq(TRANSLATIONS.length)
+    end
 
-  it 'elements' do
-    expect( subject.from(1569).elements ).to eq(
-      {
-        :ones=>9,
-        :tens=>60,
-        :hundreds=>500,
-        :thousands=>1000
-      })
-  end
-
-  it 'convert_element' do
-    expect( subject.convert_element(2) ).to eq("II")
-    expect( subject.convert_element(20) ).to eq("XX")
-    expect( subject.convert_element(7) ).to eq("VII")
-    expect( subject.convert_element(200) ).to eq("CC")
-    expect( subject.convert_element(300) ).to eq("CCC")
-    expect( subject.convert_element(2000) ).to eq("MM")
-    expect( subject.convert_element(3000) ).to eq("MMM")
-    expect( subject.convert_element(70) ).to eq("LXX")
-  end
-
-  it 'translate' do
-    expect(subject.translate('II')).to eq('II')
-    expect(subject.translate('IIIIIII')).to eq('VII')
-    expect(subject.translate('XXXXX')).to eq('L')
-    expect(subject.translate('IIIIIIII')).to eq('VIII')
-  end
-
-  it 'register_translation' do
-    subject.register_translation('XYXYXY', 'Z')
-    group = 'XYXYXY'
-    expect(subject.translate(group)).to eq('Z')
-  end
-
-  it 'build' do
-    expect(subject.build(2)).to eq('II')
+    it 'Or, #register_translation at run time.' do
+      subject.register_translation('XYXYXY', 42)
+      chromosome = 'XYXYXY'
+      expect(subject.translate(chromosome)).to eq('42')
+    end
   end
 end
