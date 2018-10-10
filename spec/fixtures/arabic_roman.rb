@@ -1,4 +1,4 @@
-CONVERSION_TEST = [
+ARABIC_ROMAN = [
   [1, 'I'],
   [2, 'II'],
   [3, 'III'],
