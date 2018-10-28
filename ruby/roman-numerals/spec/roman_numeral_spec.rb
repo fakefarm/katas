@@ -1,7 +1,7 @@
-require 'conversion'
+require 'roman_numeral'
 require_relative 'fixtures/arabic_roman.rb'
 
-RSpec.describe Conversion do
+RSpec.describe RomanNumeral do
 
   CHART = {
     1    => 'I',
@@ -25,7 +25,7 @@ RSpec.describe Conversion do
     'DD'        => 'M'
   }
 
-  subject { Conversion.new(CHART, TRANSLATIONS) }
+  subject { RomanNumeral.new(CHART, TRANSLATIONS) }
 
   let (:single_fixture) { { from: 7, to: 'VII' } }
   let (:single_subject) { subject.from(single_fixture[:from]) }
@@ -38,7 +38,6 @@ RSpec.describe Conversion do
 
   let (:quad_fixture) { { from: 2569, to: 'MMDLXIX' } }
   let (:quad_subject) { subject.from(quad_fixture[:from]) }
-
 
   ARABIC_ROMAN.each do |from, to|
     it "#{from} to #{to}" do
@@ -57,7 +56,7 @@ RSpec.describe Conversion do
     end
 
     it 'When missing, MissingConverstionChart is raised.' do
-      expect { Conversion.new.to }.to raise_error('Please supply conversions')
+      expect { RomanNumeral.new.to }.to raise_error('Please supply conversions')
     end
   end
 
